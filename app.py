@@ -102,40 +102,35 @@ if st.session_state.lcoh_results:
 
     # SECTION 4 – GPT Summary
     st.header("4️⃣ AI Project Summary (ChatGPT)")
-    st.markdown("Let GPT summarize this project using your real results.")
+st.markdown("This summary is generated using OpenAI's GPT based on your project inputs.")
 
-    with st.expander("🔐 Enter your OpenAI API key"):
-        user_api_key = st.text_input("API Key", type="password")
+if st.button("🧠 Generate GPT Summary"):
+    try:
+        import openai
+        openai.api_key = st.secrets["openai"]["api_key"]
 
-    if user_api_key and st.button("🧠 Generate GPT Summary"):
-        try:
-            import openai
-            openai.api_key = user_api_key
+        prompt = f"""
+        Summarize this hydrogen project:
+        - LCOH: ${results['LCOH']}/kg
+        - Plant Size: {plant_size} MW
+        - Electricity Cost: ${elec_cost}/MWh
+        - Incentives: ${round(total_credit, 2)}/kg
+        - NPV: {npv}
+        - ROI: {roi}%
+        - Payback Period: {payback} years
 
-            prompt = f"""
-            Summarize the following hydrogen project in 100 words or less:
+        Provide a 100-word summary explaining if this project is financially attractive and why.
+        """
 
-            - Plant Size: {plant_size} MW
-            - LCOH: ${results['LCOH']}/kg
-            - NPV: ${npv} USD
-            - ROI: {roi}%
-            - Payback: {payback} years
-            - IRA 45V Credit: ${ira_credit}/kg
-            - REC Credit: ${rec_credit}/MWh
-            - Electricity Cost: ${elec_cost}/MWh
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.4
+        )
 
-            Provide a brief financial and policy insight based on this data.
-            """
+        gpt_summary = response["choices"][0]["message"]["content"]
+        st.markdown("### 🤖 GPT Summary")
+        st.success(gpt_summary)
 
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.4
-            )
-
-            gpt_reply = response['choices'][0]['message']['content']
-            st.markdown("### 🤖 ChatGPT Summary")
-            st.info(gpt_reply)
-
-        except Exception as e:
-            st.error(f"Failed to connect to OpenAI: {e}")
+    except Exception as e:
+        st.error(f"Error generating summary: {e}")
