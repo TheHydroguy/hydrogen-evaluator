@@ -106,12 +106,13 @@ st.markdown("This result is generated using predictive modeling based on your cu
 
 if st.button("📊 Generate Insight"):
     try:
-        import openai
-
-        # For OpenAI SDK v1.x – use OpenAI class
         from openai import OpenAI
 
-        client = OpenAI(api_key=st.secrets["openai"]["api_key"])
+        # Use organization and optionally project ID if required
+        client = OpenAI(
+            api_key=st.secrets["openai"]["api_key"],
+            organization=st.secrets["openai"]["organization"]
+        )
 
         prompt = f"""
         Summarize this hydrogen project:
