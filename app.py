@@ -106,7 +106,11 @@ st.markdown("This result is generated using predictive modeling based on your cu
 
 if st.button("📊 Generate Insight"):
     try:
+        import openai
+
+        # For OpenAI SDK v1.x – use OpenAI class
         from openai import OpenAI
+
         client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
         prompt = f"""
