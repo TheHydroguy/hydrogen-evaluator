@@ -100,14 +100,14 @@ if st.session_state.lcoh_results:
         st.metric("Payback Period", f"{payback} years")
         st.metric("ROI", f"{roi}%")
 
-    # SECTION 4 – GPT Summary
-    st.header("4️⃣ AI Project Summary (ChatGPT)")
-st.markdown("This summary is generated using OpenAI's GPT based on your project inputs.")
+    # SECTION 4 – Automated Project Insight (Rebranded GPT Summary)
+st.header("4️⃣ Automated Project Insight")
+st.markdown("This result is generated using predictive modeling based on your current project configuration.")
 
-if st.button("🧠 Generate GPT Summary"):
+if st.button("📊 Generate Insight"):
     try:
-        import openai
-        openai.api_key = st.secrets["openai"]["api_key"]
+        from openai import OpenAI
+        client = OpenAI(api_key=st.secrets["openai"]["api_key"])
 
         prompt = f"""
         Summarize this hydrogen project:
@@ -119,18 +119,18 @@ if st.button("🧠 Generate GPT Summary"):
         - ROI: {roi}%
         - Payback Period: {payback} years
 
-        Provide a 100-word summary explaining if this project is financially attractive and why.
+        Provide a concise and professional summary describing the economic viability and investment outlook based on these values.
         """
 
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.4
         )
 
-        gpt_summary = response["choices"][0]["message"]["content"]
-        st.markdown("### 🤖 GPT Summary")
+        gpt_summary = response.choices[0].message.content
+        st.markdown("### Project Summary")
         st.success(gpt_summary)
 
     except Exception as e:
-        st.error(f"Error generating summary: {e}")
+        st.error(f"Error generating insight: {e}")
