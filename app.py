@@ -102,9 +102,12 @@ if st.session_state.lcoh_results:
         st.metric("ROI", f"{roi}%")
 
     # SECTION 4 – Charts
-    st.header("4 Visualize Project Analysis")
+    import numpy as np
+import matplotlib.pyplot as plt
 
-    # Chart 1 – LCOH vs Electricity Price
+st.header("5️⃣ Visual Sensitivity Analysis")
+
+# Chart 1 – LCOH vs Electricity Price
 if st.button("📊 LCOH vs. Electricity Price"):
     elec_range = np.linspace(20, 100, 20)
     lcoh_values = []
@@ -128,28 +131,23 @@ if st.button("📊 LCOH vs. Electricity Price"):
     ax1.set_title("LCOH vs Electricity Price")
     ax1.set_xlabel("Electricity Price ($/MWh)")
     ax1.set_ylabel("LCOH ($/kg H₂)")
+    ax1.grid(True)
     st.pyplot(fig1)
 
 # Chart 2 – NPV vs LCOH
 if st.button("📈 NPV vs. LCOH"):
-    lcoh_test_vals = np.linspace(2, 10, 20)
-    npvs = []
-    for test_lcoh in lcoh_test_vals:
-        total_cost = test_lcoh * results["Annual_H2_kg"]
-        test_profit = (h2_price + total_credit) * results["Annual_H2_kg"] - total_cost
+    lcoh_range = np.linspace(2, 10, 20)
+    npv_values = []
+    for test_lcoh in lcoh_range:
+        test_cost = test_lcoh * results['Annual_H2_kg']
+        test_profit = (h2_price + total_credit) * results['Annual_H2_kg'] - test_cost
         test_npv = (test_profit * ((1 - (1 + discount_rate / 100) ** -lifetime) / (discount_rate / 100))) - (capex * plant_size)
-        npvs.append(test_npv / 1e6)
+        npv_values.append(test_npv / 1e6)
 
     fig2, ax2 = plt.subplots()
-    ax2.plot(lcoh_test_vals, npvs, color='purple', marker='x')
+    ax2.plot(lcoh_range, npv_values, color='green', marker='x')
     ax2.set_title("NPV vs LCOH")
     ax2.set_xlabel("LCOH ($/kg H₂)")
     ax2.set_ylabel("NPV (Million USD)")
+    ax2.grid(True)
     st.pyplot(fig2)
-'''
-
-# Append smart visualization block to the app
-with open(app_path, "a") as f:
-    f.write(updated_charts_code)
-
-app_path
