@@ -1,17 +1,16 @@
-
 import streamlit as st
+import matplotlib.pyplot as plt
 from lcoh_calculator import calculate_lcoh
 
 st.set_page_config(page_title="Hydrogen Project Evaluator", layout="centered")
 st.title("🔬 Hydrogen Project Evaluator")
-st.markdown("Estimate LCOH, incentive impact, and financials for hydrogen production.")
 
-# Initialize session state variables
+# Initialize session state
 if "lcoh_results" not in st.session_state:
     st.session_state.lcoh_results = None
 
+# SECTION 1 – Inputs
 st.header("1️⃣ Core Project Inputs")
-
 with st.form("core_inputs"):
     col1, col2 = st.columns(2)
     with col1:
@@ -25,11 +24,11 @@ with st.form("core_inputs"):
         cap_factor = st.number_input("Capacity Factor [%]", value=50.0)
         efficiency = st.number_input("H2 Efficiency [kWh / kg]", value=50.0)
 
-    st.markdown("### Optional: Include Storage and Transport Costs")
+    st.markdown("### Optional Costs")
     add_storage = st.checkbox("Include Storage Cost?")
     add_transport = st.checkbox("Include Transport Cost?")
-    storage_cost = st.number_input("Storage Cost [$ / kg H₂]", value=0.0) if add_storage else 0.0
-    transport_cost = st.number_input("Transport Cost [$ / kg H₂]", value=0.0) if add_transport else 0.0
+    storage_cost = st.number_input("Storage Cost [$ / kg]", value=0.0) if add_storage else 0.0
+    transport_cost = st.number_input("Transport Cost [$ / kg]", value=0.0) if add_transport else 0.0
 
     submitted = st.form_submit_button("🧮 Calculate")
 
@@ -47,7 +46,7 @@ if submitted:
         transport_cost_per_kg=transport_cost
     )
 
-# If LCOH results exist, show next sections
+# Show results if LCOH was calculated
 if st.session_state.lcoh_results:
     results = st.session_state.lcoh_results
     st.success("✅ LCOH Calculated:")
@@ -62,22 +61,24 @@ if st.session_state.lcoh_results:
     """)
     st.caption(f"Annual H₂ Production: {results['Annual_H2_kg']:,} kg | CRF: {results['CRF']}")
 
-    st.header("2️⃣ Incentives and Credits (Optional)")
+    # SECTION 2 – Incentives
+    st.header("2️⃣ Incentives and Credits")
     col1, col2 = st.columns(2)
     with col1:
-        ira_credit = st.number_input("IRA 45V Credit [$ / kg H₂]", value=3.0, key="ira")
-        rec_credit = st.number_input("REC Credit [$ / MWh]", value=20.0, key="rec")
+        ira_credit = st.number_input("IRA 45V Credit [$ / kg H₂]", value=3.0)
+        rec_credit = st.number_input("REC Credit [$ / MWh]", value=20.0)
     with col2:
-        carbon_credit = st.number_input("Carbon Credit [$ / ton CO₂]", value=50.0, key="carbon")
-        co2_avoided = st.number_input("CO₂ Avoided [kg / kg H₂]", value=10.0, key="co2")
+        carbon_credit = st.number_input("Carbon Credit [$ / ton CO₂]", value=50.0)
+        co2_avoided = st.number_input("CO₂ Avoided [kg / kg H₂]", value=10.0)
 
     rec_component = rec_credit * efficiency / 1000
     carbon_component = (carbon_credit * co2_avoided) / 1000
     total_credit = ira_credit + rec_component + carbon_component
-    st.metric("Total Incentive Value", f"${round(total_credit, 2)}/kg H₂")
+    st.metric("Total Incentive Value", f"${round(total_credit, 2)}/kg")
 
+    # SECTION 3 – Financials
     st.header("3️⃣ Financial Performance")
-    h2_price = st.number_input("Hydrogen Selling Price [$ / kg H₂]", value=15.0, key="price")
+    h2_price = st.number_input("Hydrogen Selling Price [$ / kg]", value=15.0)
 
     annual_revenue = (h2_price + total_credit) * results['Annual_H2_kg']
     annual_cost = results['LCOH'] * results['Annual_H2_kg']
@@ -100,42 +101,28 @@ if st.session_state.lcoh_results:
         st.metric("Payback Period", f"{payback} years")
         st.metric("ROI", f"{roi}%")
 
-    # SECTION 4 – Automated Project Insight (Rebranded GPT Summary)
-st.header("4️⃣ Automated Project Insight")
-st.markdown("This result is generated using predictive modeling based on your current project configuration.")
+    # SECTION 4 – Charts
+    st.header("4 Visualize Project Analysis")
 
-if st.button("📊 Generate Insight"):
-    try:
-        from openai import OpenAI
+    if st.button("📊 Show LCOH Cost Breakdown Chart"):
+        labels = ['CAPEX', 'OPEX', 'Electricity', 'Storage', 'Transport']
+        values = [
+            results['CAPEX_per_kg'],
+            results['OPEX_per_kg'],
+            results['Elec_per_kg'],
+            results['Storage_per_kg'],
+            results['Transport_per_kg']
+        ]
+        fig, ax = plt.subplots()
+        ax.pie(values, labels=labels, autopct='%1.1f%%', startangle=90)
+        ax.axis('equal')
+        st.pyplot(fig)
 
-        # Use organization and optionally project ID if required
-        client = OpenAI(
-            api_key=st.secrets["openai"]["api_key"],
-            organization=st.secrets["openai"]["organization"]
-        )
-
-        prompt = f"""
-        Summarize this hydrogen project:
-        - LCOH: ${results['LCOH']}/kg
-        - Plant Size: {plant_size} MW
-        - Electricity Cost: ${elec_cost}/MWh
-        - Incentives: ${round(total_credit, 2)}/kg
-        - NPV: {npv}
-        - ROI: {roi}%
-        - Payback Period: {payback} years
-
-        Provide a concise and professional summary describing the economic viability and investment outlook based on these values.
-        """
-
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.4
-        )
-
-        gpt_summary = response.choices[0].message.content
-        st.markdown("### Project Summary")
-        st.success(gpt_summary)
-
-    except Exception as e:
-        st.error(f"Error generating insight: {e}")
+    if st.button("📈 Show Profit vs. LCOH Bar"):
+        profit = (h2_price + total_credit - results['LCOH']) * results['Annual_H2_kg']
+        cost = results['LCOH'] * results['Annual_H2_kg']
+        fig2, ax2 = plt.subplots()
+        ax2.bar(['Total Cost', 'Profit'], [cost, profit], color=['red', 'green'])
+        ax2.set_ylabel('USD')
+        ax2.set_title('Annual Cost vs. Profit')
+        st.pyplot(fig2)
