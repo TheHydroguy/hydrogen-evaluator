@@ -104,25 +104,52 @@ if st.session_state.lcoh_results:
     # SECTION 4 – Charts
     st.header("4 Visualize Project Analysis")
 
-    if st.button("📊 Show LCOH Cost Breakdown Chart"):
-        labels = ['CAPEX', 'OPEX', 'Electricity', 'Storage', 'Transport']
-        values = [
-            results['CAPEX_per_kg'],
-            results['OPEX_per_kg'],
-            results['Elec_per_kg'],
-            results['Storage_per_kg'],
-            results['Transport_per_kg']
-        ]
-        fig, ax = plt.subplots()
-        ax.pie(values, labels=labels, autopct='%1.1f%%', startangle=90)
-        ax.axis('equal')
-        st.pyplot(fig)
+    # Chart 1 – LCOH vs Electricity Price
+if st.button("📊 LCOH vs. Electricity Price"):
+    elec_range = np.linspace(20, 100, 20)
+    lcoh_values = []
+    for e in elec_range:
+        temp_result = calculate_lcoh(
+            capex_per_mw=capex,
+            opex_per_mw=opex,
+            plant_size_mw=plant_size,
+            plant_lifetime_years=lifetime,
+            discount_rate=discount_rate,
+            elec_cost_per_mwh=e,
+            capacity_factor=cap_factor,
+            efficiency_kwh_per_kg=efficiency,
+            storage_cost_per_kg=storage_cost,
+            transport_cost_per_kg=transport_cost
+        )
+        lcoh_values.append(temp_result["LCOH"])
 
-    if st.button("📈 Show Profit vs. LCOH Bar"):
-        profit = (h2_price + total_credit - results['LCOH']) * results['Annual_H2_kg']
-        cost = results['LCOH'] * results['Annual_H2_kg']
-        fig2, ax2 = plt.subplots()
-        ax2.bar(['Total Cost', 'Profit'], [cost, profit], color=['red', 'green'])
-        ax2.set_ylabel('USD')
-        ax2.set_title('Annual Cost vs. Profit')
-        st.pyplot(fig2)
+    fig1, ax1 = plt.subplots()
+    ax1.plot(elec_range, lcoh_values, marker='o')
+    ax1.set_title("LCOH vs Electricity Price")
+    ax1.set_xlabel("Electricity Price ($/MWh)")
+    ax1.set_ylabel("LCOH ($/kg H₂)")
+    st.pyplot(fig1)
+
+# Chart 2 – NPV vs LCOH
+if st.button("📈 NPV vs. LCOH"):
+    lcoh_test_vals = np.linspace(2, 10, 20)
+    npvs = []
+    for test_lcoh in lcoh_test_vals:
+        total_cost = test_lcoh * results["Annual_H2_kg"]
+        test_profit = (h2_price + total_credit) * results["Annual_H2_kg"] - total_cost
+        test_npv = (test_profit * ((1 - (1 + discount_rate / 100) ** -lifetime) / (discount_rate / 100))) - (capex * plant_size)
+        npvs.append(test_npv / 1e6)
+
+    fig2, ax2 = plt.subplots()
+    ax2.plot(lcoh_test_vals, npvs, color='purple', marker='x')
+    ax2.set_title("NPV vs LCOH")
+    ax2.set_xlabel("LCOH ($/kg H₂)")
+    ax2.set_ylabel("NPV (Million USD)")
+    st.pyplot(fig2)
+'''
+
+# Append smart visualization block to the app
+with open(app_path, "a") as f:
+    f.write(updated_charts_code)
+
+app_path
